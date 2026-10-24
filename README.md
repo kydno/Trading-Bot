@@ -1,208 +1,142 @@
-# DTB
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
+    <img alt="An experiment with two Claude Opus 4.6s. Trading Bot. Two Claude Opus 4.6s work together to try to make me money. Did it work?" src="docs/images/hero-light.svg" width="100%">
+  </picture>
+</p>
 
-> **This project is archived.** After five rounds of rigorous statistical validation, no strategy produced a detectable edge over buy-and-hold. Development has stopped. The code and results are preserved here as a case study in honest quantitative strategy validation.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/stats-dark.svg">
+    <img alt="30 days from first commit to archive. 12,000+ lines of code and docs. 0 of 5 tickers passed validation. 6 of 23 ETFs beat buy and hold." src="docs/images/stats-light.svg" width="100%">
+  </picture>
+</p>
 
-**DTB** was a Discord trading bot that scanned stocks and ETFs for technical signals using a weighted consensus of 11 indicators. It included walk-forward optimization, stationary bootstrap significance testing, and cross-sectional excess Sharpe analysis. The validation infrastructure worked exactly as intended — it correctly identified that the strategies had no edge.
+<br>
 
----
+## The experiment
 
-## What We Learned
+I wanted to see how far two copies of Claude Opus 4.6 could take a real project. It would pick a strategy, build it, and then work out whether the strategy actually made money. Working together, the two of them wrote most of the code, research notes and test design in this repo. Claude Sonnet 4.6 came in once as an outside reviewer.
 
-### Mean-Reversion (MR) on Large-Cap Indices
+The project started as a Discord bot that posted buy and sell signals, and that part worked fine. The interesting part came when Opus had to prove the signals had an edge.
 
-Weighted consensus of RSI, MACD, Bollinger Bands, SuperTrend, Stochastic, Williams %R, EMA, VWAP, OBV, and CMF. Tested on SPY, QQQ, IWM over 10 years of daily data.
+They didn't. After five rounds of testing on two strategies and 23 ETFs, nothing beat buying and holding. The project was archived on March 26, 2026.
 
-- **Result: Genuine negative.** 340 effective independent observations, p=0.50, ~80% statistical power.
-- The strategy's returns sit at the median of the bootstrap null distribution — positive Sharpe comes entirely from market drift, not timing skill.
-- Reduced param grid from 48 to 4 combinations to minimize overfitting. Still no edge.
+So this page isn't really about the bot. It's about how the model did.
 
-### Trend-Following (TF) Donchian Breakouts
+<br>
 
-55-period Donchian channel breakouts with ATR trailing stops. Tested on 23 ETFs across equities, commodities, bonds, currencies, and international markets.
+## What Opus 4.6 got right
 
-- **Result: Significantly underperforms buy-and-hold.** Mean excess Sharpe: -0.177, t=-3.23, p=0.998.
-- Only 6 of 23 tickers beat buy-and-hold. Winners were commodities (USO), EM (EEM), and bonds (IEF).
-- Post-hoc filter to 12 non-equity tickers: mean excess Sharpe still negative (-0.058, t=-0.78).
+It built the testing tools a real quant would use. That meant walk-forward optimization, a stationary bootstrap on the stitched-together out-of-sample returns, deflated and probabilistic Sharpe ratios, and Benjamini–Hochberg correction across tickers. It also wrote pre-registration files and kept a hold-out ticker (DIA) for one final run.
 
-### Cross-Sectional Momentum (XSMOM)
+It let its own strategies fail. When the numbers came back bad, they went into the repo as failures. The paper trading config even labels the one remaining idea honestly: *"This is a post-hoc hypothesis suggested by the data, not a pre-committed blind test."*
 
-Researched but rejected before implementation. MTUM, a $17B professionally managed momentum ETF by BlackRock, has returned 15.62% annualized vs SPY's 15.83% over 10 years with higher volatility. If BlackRock can't extract meaningful alpha from momentum at the stock/ETF level, a retail indicator-based approach won't either.
+It didn't take the review on faith. Each of Sonnet's 21 claims was checked against the code before anything changed. Four had already been fixed or were out of date, and two were only partly right.
 
-### VIX Regime Filter
+It moved fast. The first version on February 26 was about 2,000 lines. A month later the repo was over 12,000.
 
-VIX-based regime detection (bull/bear/mixed) was implemented and tested. Re-running all validations with the regime filter applied made no material difference to any result.
+<br>
 
-### Why This Matters
+## What it got wrong
 
-Most trading bot repositories publish backtests that "work" because they were never subjected to proper statistical testing. This project built the testing infrastructure first, applied it honestly, and accepted the results. The validation pipeline — walk-forward optimization with plateau selection, stationary bootstrap on concatenated OOS bar returns, Deflated Sharpe Ratio, Probabilistic Sharpe Ratio, cross-sectional excess Sharpe t-tests, and bar-permutation Monte Carlo — is the most valuable part of this codebase.
+It got the runtime badly wrong. It estimated a validation batch at 15 to 25 minutes per ticker. Each ticker actually runs 1,500 full-history backtests plus the walk-forward search, which takes many hours to a few days. The docs now say the old estimate "was **wrong**."
 
----
+It wrote the right test and never ran it. The stationary bootstrap existed in `walk_forward.py`, but the command-line tool imported it and never called it. Sonnet caught that.
 
-## Features
+It tested trend following with a test that's rigged against it. Bar permutation shuffles away autocorrelation, which is exactly what trend following trades on. A trend strategy can fail that test even when it works.
 
-The bot was fully functional as a Discord application with 10 slash commands:
+One of its statistics meant nothing. The probability of backtest overfitting was calculated on profit factor scores, but the formula assumes Sharpe ratios. It had to be switched off.
 
-| Command | Description |
-|---------|-------------|
-| `/recap` | S&P 100 market recap (top Buy/Sell by confidence) |
-| `/market` | Recap for any index by name or country (S&P 500, DAX, FTSE 100, etc.) |
-| `/stock` | Single-ticker rundown with plain-English indicator summary |
-| `/stockchart` | Stock chart with signal overlay |
-| `/daytrade` | Real-time ATR-based stop-loss and take-profit levels |
-| `/news` | Market or ticker-specific news with VADER sentiment scoring |
-| `/indicatorbacktest` | Backtest with Simple or Walk-forward mode (Daily/1W/1H) |
-| `/watchlist` | Per-user ticker lists (add/remove/list/recap/news) |
-| `/stop` | Cancel long-running operations |
-| `/tutorial` | How the bot works |
+It wrote almost no tests at first. The 20 tests in `tests/` came after the review. That's 375 lines, next to 3,466 lines of validation code.
 
-Additional features:
-- Auto-recap every 30 minutes during US market hours
-- Multi-strategy system: mean-reversion, trend-following, hybrid
-- VIX-based regime detection (bull/bear/mixed via ensemble)
-- 3-tier config resolution (ticker > asset class > base defaults)
-- Data redundancy (yfinance primary; Alpha Vantage and Polygon fallback)
-- Async recap queue for rate limit management
+Bugs slipped through without errors. A timezone mismatch broke the VIX regime data. Weekly backtests produced zero folds because of a hardcoded 60-bar minimum.
 
----
+It planned a business before it had a strategy. The roadmap has seven phases, including leaderboards, a strategy marketplace and a $4 a month Pro tier. No strategy ever passed a test.
 
-## Architecture
+<br>
 
-### Signal Pipeline
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/sonnet_review-dark.svg">
+    <img alt="Bar chart of Sonnet 4.6's 21 review claims: 9 confirmed in the code, 2 partly right, 4 already fixed or outdated, 6 plausible but never checked." src="docs/images/sonnet_review-light.svg" width="100%">
+  </picture>
+</p>
 
-```
-src/data.py              Fetch OHLCV (yfinance, Alpha Vantage, Polygon fallback)
-      |
-src/indicators.py        Compute raw TA values (RSI, MACD, BB, SuperTrend, etc.)
-      |
-src/indicator_scores.py  Weighted buy/sell consensus (single source of truth)
-      |
-src/signals.py           Signal dataclass: Buy/Sell/Hold + confidence 1-100
-      |
-src/recap.py             Format Discord embeds for multi-stock recaps
-src/stock.py             Format Discord embeds for single-stock commands
-```
+<br>
 
-### Config Resolution
+## The results
 
-`src/config_resolver.py` implements a 3-tier hierarchy resolved on every signal evaluation:
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/pvalues-dark.svg">
+    <img alt="p-values of the five primary tests: 0.178, 0.188, 0.274, 0.529 and 0.998. None are below 0.05." src="docs/images/pvalues-light.svg" width="100%">
+  </picture>
+</p>
 
-1. **Ticker profile** — per-ticker overrides (e.g., SPY uses hybrid strategy)
-2. **Asset-class profile** — per-class defaults (sector ETF, broad ETF, single stock)
-3. **Base config** — `config.yaml` defaults
+**Mean reversion** combined RSI, MACD, Bollinger Bands, SuperTrend, Stochastic, Williams %R, EMA, VWAP, OBV and CMF into one weighted vote. It ran on SPY, QQQ and IWM over 10 years of daily bars. With 48 parameter combinations, the average out-of-sample fold returned −1.5%, −1.2% and −3.5%. Cutting the grid to 4 combinations brought SPY to −0.1%, with a bootstrap p of 0.529. There were about 340 effective independent observations and roughly 80% power, so this is a real negative, not just too little data.
 
-### Validation Infrastructure
+**Trend following** used 55-day Donchian breakouts with ATR trailing stops on 23 ETFs across stocks, commodities, bonds, currencies and emerging markets. Its average Sharpe was 0.177 below buy and hold (t = −3.23). Only 6 of the 23 beat buy and hold, including oil (USO), emerging markets (EEM) and bonds (IEF). Narrowing to the 12 non-equity tickers after the fact was still negative (−0.058, t = −0.78).
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Walk-forward optimization | `src/walk_forward.py` | Train/test fold splitting, param grid optimization |
-| Plateau selection | `src/walk_forward.py` | Selects stable param combos (best neighbor-average, not best absolute) |
-| Stationary bootstrap | `src/walk_forward.py` | Primary significance test on OOS bar returns |
-| Deflated Sharpe Ratio | `src/walk_forward.py` | Adjusts for multiple testing within WFO |
-| Probabilistic Sharpe Ratio | `src/walk_forward.py` | IID-assuming complement to bootstrap |
-| Bar-permutation Monte Carlo | `src/run_wfo.py` | Secondary test: shuffled-label null distribution |
-| Cross-sectional excess Sharpe | `scripts/pool_validation.py` | Portfolio-level t-test: TF Sharpe minus B&H Sharpe |
-| Multiple testing correction | `src/stats_utils.py` | Benjamini-Hochberg FDR + Bonferroni |
-| Pool validation | `scripts/pool_validation.py` | Multi-ticker portfolio bootstrap + per-asset breakdown |
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/tf_folds-dark.svg">
+    <img alt="Trend following fold returns. SPY averaged +3.2% per fold but trailed buy and hold by 3.6%. GLD averaged +6.2% per fold but trailed buy and hold by 6.0%." src="docs/images/tf_folds-light.svg" width="100%">
+  </picture>
+</p>
 
-### Other Modules
+**Also tried.** A VIX regime filter (bull, bear, mixed) made no real difference to any result. Cross-sectional momentum was dropped before being built. MTUM, a $17B momentum ETF, returned slightly less than SPY over ten years (15.62% vs 15.83% a year) with more volatility, so a retail indicator version seemed unlikely to do better.
 
-| Module | Purpose |
-|--------|---------|
-| `src/backtest.py` | Bar-by-bar backtest engine with stops and take-profits |
-| `src/signals_trend.py` | Donchian + ATR trailing stop (trend-following strategy) |
-| `src/hybrid.py` | Combined MR+TF signal voting |
-| `src/regime.py` | VIX-based regime classification |
-| `src/charts.py` | mplfinance chart generation |
-| `src/news.py` | yfinance headlines + VADER sentiment |
-| `src/expert.py` | Config-driven expert sentiment indicator |
-| `src/watchlist.py` | Supabase-backed per-user ticker lists |
-| `src/daytrade.py` | Intraday ATR-based stop/take-profit levels |
-| `src/indices.py` | Index constituent lists |
-| `src/recap_queue.py` | Async queue for sequential recap processing |
-| `src/stop.py` | Cancellation via `StopRequested` exception |
+<br>
 
----
+## Where the effort went
 
-## Setup
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/code_split-dark.svg">
+    <img alt="Lines per area: bot commands, charts and news 3,763; backtesting and validation 3,466; research docs 2,424; signals, indicators and data 2,191; tests 375." src="docs/images/code_split-light.svg" width="100%">
+  </picture>
+</p>
 
-If you want to explore or learn from the codebase:
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/roadmap-dark.svg">
+    <img alt="Roadmap items built by phase: phase 1 22 of 29, phase 2 5 of 13, phases 3 through 7 none." src="docs/images/roadmap-light.svg" width="100%">
+  </picture>
+</p>
 
-### Requirements
+<br>
+
+## Look around
+
+The signal pipeline goes `src/data.py` → `src/indicators.py` → `src/indicator_scores.py` → `src/signals.py`. Trend following lives in `src/signals_trend.py`.
+
+The test bench is mostly `src/walk_forward.py` and `src/run_wfo.py`. The 23-ticker comparison is `scripts/pool_validation.py`, and the multiple-testing correction is `src/stats_utils.py`.
+
+The research notes in `docs/` are worth reading as a record of the model's reasoning. Start with `STRATEGY_AND_EDGE.md`, `WALK_FORWARD_OPTIMIZATION_RESEARCH.md` and `CLAUDE_SONNET_REVIEW_VERIFIED_ROADMAP.md`. `Roadmap` shows the full plan and where it stopped.
+
+<br>
+
+## Run it
 
 ```bash
 pip install -r requirements.txt
-```
-
-### Environment
-
-```bash
-cp .env.example .env
-# Edit .env:
-#   DISCORD_BOT_TOKEN=your_token_here       (required)
-#   SUPABASE_URL=...                         (optional, for watchlist)
-#   SUPABASE_KEY=...                         (optional, for watchlist)
-#   ALPHA_VANTAGE_API_KEY=...                (optional, data fallback)
-#   POLYGON_API_KEY=...                      (optional, data fallback)
-```
-
-### Run
-
-```bash
-python main.py
-```
-
-### Tests
-
-```bash
 python -m pytest tests/ -v
-```
 
-### Walk-Forward Optimization
+# one ticker, walk-forward + bootstrap
+python -m src.run_wfo SPY --strategy mr --period 5y
 
-```bash
-# Single ticker
-python src/run_wfo.py SPY --period 10y --timeframe Daily
-
-# Pool validation (23-ticker cross-sectional test)
+# trend following vs buy and hold on 23 ETFs
 python scripts/pool_validation.py --strategy tf --expanded --period 10y
+
+# rebuild the charts on this page
+python scripts/make_readme_charts.py
 ```
 
-See `docs/WFO_COMMANDS.md` and `docs/wfo_batches/BEGINNER_EXACT_STEPS.md` for full usage.
+The full batch in `run_wfo_batch.ps1` takes days, not minutes. `main.py` starts the original bot and needs a token in `.env` (see `.env.example`).
 
----
+<br>
 
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| `docs/STRATEGY_AND_EDGE.md` | Entry/exit logic, signal consensus, edge analysis |
-| `docs/WALK_FORWARD_OPTIMIZATION_RESEARCH.md` | WFO implementation: plateau selection, DSR, PBO, bootstrap |
-| `docs/BAR_LEVEL_RETURNS_RESEARCH.md` | How bar-level P&L is computed for Sharpe ratios |
-| `docs/MONTE_CARLO_PERMUTATION_RESEARCH.md` | Bar-permutation labeling approach |
-| `docs/MULTI_TIMEFRAME_RESEARCH.md` | Multi-timeframe indicator logic |
-| `docs/SURVIVORSHIP_BIAS_RESEARCH.md` | Point-in-time data considerations |
-| `docs/EXPERT_SENTIMENT_SETUP.md` | Expert indicator configuration |
-| `docs/LIVE_BACKTEST_STOP_PARITY.md` | Stop/TP parity between backtest and live signals |
-| `docs/CLAUDE_SONNET_REVIEW_VERIFIED_ROADMAP.md` | External AI review of methodology |
-| `docs/wfo_batches/` | Pre-registration templates and validation batch methodology |
-| `Roadmap` | Full 7-phase development plan and where it stopped |
-
----
-
-## Tech Stack
-
-- **Python 3.13** with asyncio
-- **py-cord** — Discord bot with slash commands
-- **yfinance** — OHLCV data (Alpha Vantage and Polygon as fallbacks)
-- **ta** — Technical indicators
-- **mplfinance** — Candlestick charts with indicator overlays
-- **vaderSentiment** — News sentiment scoring
-- **scipy** — Statistical tests (bootstrap, t-tests, Wilcoxon)
-- **arch** — Stationary bootstrap block length estimation
-- **supabase** — Watchlist persistence (optional)
-
----
-
-## Disclaimer
-
-This bot was for educational and informational purposes only. It does not constitute financial advice. The validation results demonstrate that the strategies tested have no detectable edge over buy-and-hold.
+<p align="center">
+  <sub>For learning only, not financial advice. MIT licensed.</sub>
+</p>
