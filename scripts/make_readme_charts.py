@@ -135,11 +135,11 @@ def _save(fig, name, mode):
 
 def hero(t, mode):
     fig = _fig(10, 3.0)
-    fig.text(0.5, 0.80, "An experiment with two Claude Opus 4.6s", color=t["blue"], fontsize=13,
+    fig.text(0.5, 0.80, "An experiment with two Opus 4.6s", color=t["blue"], fontsize=13,
              fontweight="semibold", family=FONT, ha="center", va="center")
     fig.text(0.5, 0.54, "Trading Bot", color=t["ink"], fontsize=50, fontweight="bold",
              family=DISPLAY, ha="center", va="center")
-    fig.text(0.5, 0.27, "Two Claude Opus 4.6s work together to try to make me money.",
+    fig.text(0.5, 0.27, "Two Opus 4.6s work together to try to make me infinite money.",
              color=t["ink2"], fontsize=15, family=DISPLAY, ha="center", va="center")
     fig.text(0.5, 0.15, "Did it work?", color=t["ink2"], fontsize=15, family=DISPLAY,
              ha="center", va="center")
