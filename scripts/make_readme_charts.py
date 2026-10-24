@@ -127,7 +127,7 @@ def _rbar(ax, x0, y0, x1, y1, color, r_px=5.0):
 
 def _save(fig, name, mode):
     OUT.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT / f"{name}-{mode}.svg", transparent=True)
+    fig.savefig(OUT / f"{name}-{mode}.svg", transparent=True, metadata={"Date": None})
     plt.close(fig)
 
 
@@ -135,13 +135,13 @@ def _save(fig, name, mode):
 
 def hero(t, mode):
     fig = _fig(10, 3.0)
-    fig.text(0.5, 0.80, "AN EXPERIMENT WITH CLAUDE OPUS 4.6", color=t["blue"], fontsize=11,
+    fig.text(0.5, 0.80, "An experiment with two Claude Opus 4.6s", color=t["blue"], fontsize=13,
              fontweight="semibold", family=FONT, ha="center", va="center")
     fig.text(0.5, 0.54, "Trading Bot", color=t["ink"], fontsize=50, fontweight="bold",
              family=DISPLAY, ha="center", va="center")
-    fig.text(0.5, 0.27, "An AI built a trading strategy, then built the tests to check it.",
+    fig.text(0.5, 0.27, "Two Claude Opus 4.6s work together to try to make me money.",
              color=t["ink2"], fontsize=15, family=DISPLAY, ha="center", va="center")
-    fig.text(0.5, 0.15, "The tests won.", color=t["ink2"], fontsize=15, family=DISPLAY,
+    fig.text(0.5, 0.15, "Did it work?", color=t["ink2"], fontsize=15, family=DISPLAY,
              ha="center", va="center")
     _save(fig, "hero", mode)
 
@@ -341,6 +341,7 @@ def chart_roadmap(t, mode, phases):
 
 def main():
     plt.rcParams["font.family"] = FONT
+    plt.rcParams["svg.hashsalt"] = "readme"  # stable ids, so unchanged charts stay unchanged in git
     rows = code_split()
     phases = roadmap_counts()
     total = sum(n for _, n in rows)
