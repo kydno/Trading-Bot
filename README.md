@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-    <img alt="An experiment with two Claude Opus 4.6s. Trading Bot. Two Claude Opus 4.6s work together to try to make me money. Did it work?" src="docs/images/hero-light.svg" width="100%">
+    <img alt="An experiment with two Opus 4.6s. Trading Bot. Two Opus 4.6s work together to try to make me infinite money. Did it work?" src="docs/images/hero-light.svg" width="100%">
   </picture>
 </p>
 
@@ -16,7 +16,7 @@
 
 ## The experiment
 
-I wanted to see how far two copies of Claude Opus 4.6 could take a real project. It would pick a strategy, build it, and then work out whether the strategy actually made money. Working together, the two of them wrote most of the code, research notes and test design in this repo. Claude Sonnet 4.6 came in once as an outside reviewer.
+I wanted to see how far two copies of Claude Opus 4.6 could take a algorithmic trading project. It would research, pick a strategy, build it, and then work out whether the strategy actually made money. Working together, the two of them wrote most of the code, research notes and test design in this repo. Claude Sonnet 4.6 came in once as an outside reviewer.
 
 The project started as a Discord bot that posted buy and sell signals, and that part worked fine. The interesting part came when Opus had to prove the signals had an edge.
 
