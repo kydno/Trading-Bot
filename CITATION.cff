@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you reference this experiment, please cite it as below."
+type: software
+title: "Trading Bot: an experiment with two Claude Opus 4.6s building and validating an algorithmic trading strategy"
+abstract: >-
+  A Discord trading-signal bot and Python backtesting and validation suite
+  built almost entirely by two Claude Opus 4.6 instances. It includes
+  walk-forward optimization, a stationary bootstrap on stitched out-of-sample
+  returns, deflated and probabilistic Sharpe ratios, bar-permutation tests and
+  Benjamini-Hochberg correction. Neither the mean-reversion strategy (SPY, QQQ,
+  IWM) nor the 55-day Donchian trend-following strategy (23 ETFs) beat buy and
+  hold. The project was archived on March 26, 2026.
+authors:
+  - family-names: Solaiman
+    given-names: Kadin
+    alias: kydno
+repository-code: "https://github.com/kydno/Trading-Bot"
+url: "https://github.com/kydno/Trading-Bot"
+license: MIT
+date-released: "2026-03-26"
+keywords:
+  - algorithmic trading
+  - backtesting
+  - walk-forward optimization
+  - deflated sharpe ratio
+  - stationary bootstrap
+  - mean reversion
+  - trend following
+  - technical analysis
+  - discord bot
+  - claude
+  - llm agents
+  - ai-generated code
